@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Discussion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .topic-card {
+            transition: all 0.2s ease;
+        }
+        .topic-card:hover {
+            transform: translateY(-2px);
+        }
+        .discussion-header-image {
+            height: 400px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Name Prompt Modal -->
+    <div id="nameModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 class="text-xl font-bold mb-4">Welcome to Cricket DisHub!</h2>
+            <div class="mb-4">
+                <label class="block text-gray-700 mb-2">Please enter your name:</label>
+                <input type="text" id="userName" class="w-full p-2 border rounded" placeholder="Your name" required>
+            </div>
+            <button id="nameSubmitBtn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                Continue
+            </button>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 hidden" id="mainContent">
+        <!-- Header -->
+        <header class="mb-12">
+            <h1 class="text-4xl font-bold text-indigo-800 mb-2">Cricket Fanatics Hub</h1>
+            <p class="text-gray-600">Discuss latest matches, players and cricket news</p>
+        </header>
+
+        <!-- Create New Topic Button -->
+        <button id="newTopicBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg mb-8 hover:bg-indigo-700 transition">
+            + New Cricket Discussion
+        </button>
+
+        <!-- Topics Grid -->
+        <div id="topicsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Topics will appear here -->
+        </div>
+
+        <!-- Topic Creation Modal -->
+        <div id="topicModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white rounded-lg p-6 w-full max-w-2xl">
+                <h2 class="text-2xl font-bold mb-4">Start New Cricket Discussion</h2>
+                <form id="topicForm">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">Topic Title</label>
+                        <input type="text" id="topicTitle" class="w-full p-2 border rounded" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">Upload Image</label>
+                        <input type="file" id="topicImage" class="w-full p-2 border rounded" accept="image/*">
+                        <p class="text-sm text-gray-500 mt-1">Select from gallery or drive</p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 mb-2">Discussion Content</label>
+                        <textarea id="topicContent" rows="6" class="w-full p-2 border rounded" required></textarea>
+                    </div>
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" id="cancelBtn" class="px-4 py-2 text-gray-700">Cancel</button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded">Create Topic</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Discussion View (hidden initially) -->
+        <div id="discussionView" class="hidden">
+            <button id="backButton" class="mb-6 flex items-center text-indigo-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                </svg>
+                Back to Topics
+            </button>
+
+            <!-- Discussion Header -->
+            <div class="bg-white rounded-lg shadow-lg mb-8 overflow-hidden">
+                <img id="discussionImage" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/cd15827d-a802-400c-862d-16e49f2adf52.png" alt="Discussion topic header image" class="w-full discussion-header-image">
+                <div class="p-6">
+                    <h2 id="discussionTitle" class="text-2xl font-bold mb-4"></h2>
+                    <div id="discussionContent" class="prose"></div>
+                </div>
+            </div>
+
+            <!-- Comments Section -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-xl font-bold mb-4">Comments</h3>
+                <div id="commentsContainer">
+                    <!-- Comments will appear here -->
+                    <p class="text-gray-500 text-center pb-4">No comments yet</p>
+                </div>
+                <form id="commentForm" class="mt-6">
+                    <textarea id="commentText" rows="3" class="w-full p-2 border rounded mb-2" placeholder="Write your comment..." required></textarea>
+                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Post Comment</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Handle name prompt
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameModal = document.getElementById('nameModal');
+            const nameInput = document.getElementById('userName');
+            const nameSubmitBtn = document.getElementById('nameSubmitBtn');
+            const mainContent = document.getElementById('mainContent');
+
+            // Check if name is already stored
+            if(localStorage.getItem('userName')) {
+                nameModal.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+            }
+
+            nameSubmitBtn.addEventListener('click', function() {
+                if(nameInput.value.trim()) {
+                    localStorage.setItem('userName', nameInput.value.trim());
+                    nameModal.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                } else {
+                    alert('Please enter your name');
+                }
+            });
+        });
+
+        // Sample data
+        let topics = [
+            {
+                id: 1,
+                title: "Best Batting Techniques",
+                image: "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/5b23fd7c-2443-42c3-a363-15e803287293.png",
+                content: `
+                    <p>Let's discuss the most effective batting techniques in modern cricket:</p>
+                    <ul>
+                        <li>Front foot vs back foot play</li>
+                        <li>Handling fast bowling</li>
+                        <li>Innovative shots like the scoop and switch-hit</li>
+                    </ul>
+                    <p>Share your favorite techniques and players to watch!</p>
+                `,
+                comments: []
+            },
+            {
+                id: 2,
+                title: "Upcoming Tournaments",
+                image: "https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/787268a9-ccc7-4446-8e42-5d9242ab6943.png",
+                content: `
+                    <p>Discussion about upcoming cricket events:</p>
+                    <ul>
+                        <li>World Cup preparations</li>
+                        <li>Domestic league updates</li>
+                        <li>Young players to watch</li>
+                        <li>Team strategies</li>
+                    </ul>
+                `,
+                comments: []
+            }
+        ];
+
+        // DOM elements
+        const topicsContainer = document.getElementById('topicsContainer');
+        const discussionView = document.getElementById('discussionView');
+        const topicModal = document.getElementById('topicModal');
+        const newTopicBtn = document.getElementById('newTopicBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const backButton = document.getElementById('backButton');
+        const topicForm = document.getElementById('topicForm');
+        const commentForm = document.getElementById('commentForm');
+
+        // Render topics
+        function renderTopics() {
+            topicsContainer.innerHTML = '';
+            
+            topics.forEach(topic => {
+                const card = document.createElement('div');
+                card.className = 'topic-card bg-white rounded-lg shadow-md overflow-hidden cursor-pointer';
+                card.innerHTML = `
+                    <img src="${topic.image}" alt="${topic.title}" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="text-xl font-semibold mb-2 cursor-pointer text-cyan-600">${topic.title}</h3>
+                        <p class="text-xs text-gray-500">Posted ${formatTimeAgo(new Date())}</p>
+                    </div>
+                `;
+                
+                const titleElement = card.querySelector('h3');
+                titleElement.addEventListener('click', () => openDiscussion(topic.id));
+                topicsContainer.appendChild(card);
+            });
+        }
+
+        // Open discussion
+        function openDiscussion(id) {
+            const topic = topics.find(t => t.id === id);
+            if (!topic) return;
+
+            document.getElementById('discussionTitle').textContent = topic.title;
+            document.getElementById('discussionImage').src = topic.image;
+            document.getElementById('discussionImage').alt = topic.title;
+            document.getElementById('discussionContent').innerHTML = topic.content;
+            
+            // Render comments
+            renderComments(topic.comments);
+            
+            // Show discussion view
+            topicsContainer.classList.add('hidden');
+            discussionView.classList.remove('hidden');
+        }
+
+        // Render comments
+        function renderComments(comments) {
+            const container = document.getElementById('commentsContainer');
+            container.innerHTML = '';
+            
+            if (comments.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No comments yet</p>';
+                return;
+            }
+            
+            comments.forEach(comment => {
+                const commentDiv = document.createElement('div');
+                commentDiv.className = 'mb-4 pt-4 border-t border-gray-200';
+                commentDiv.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/e90a500d-b847-49af-82ba-5b6a87f8900a.png" alt="User" class="w-10 h-10 rounded-full">
+                        <div>
+                            <h4 class="font-medium">${comment.name || 'Anonymous'}</h4>
+                            <p class="text-gray-700">${comment.text}</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <p class="text-xs text-gray-500">${formatTimeAgo(new Date(comment.date))}</p>
+                                <div class="flex space-x-4">
+                                    <button class="text-gray-500 hover:text-green-500 flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                                        </svg>
+                                        <span>${comment.likes || 0}</span>
+                                    </button>
+                                    <button class="text-gray-500 hover:text-red-500 flex items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.017c.163 0 .326.02.485.06L17 4m0 0v9m0-9h2.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 13H9m0-9v9" />
+                                        </svg>
+                                        <span>${comment.dislikes || 0}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(commentDiv);
+            });
+        }
+
+        // Preview selected image
+        document.getElementById('topicImage').addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Show preview (you could add a preview element)
+                    console.log('Selected image preview:', e.target.result);
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        // Event listeners
+        newTopicBtn.addEventListener('click', () => {
+            topicModal.classList.remove('hidden');
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            topicModal.classList.add('hidden');
+        });
+
+        backButton.addEventListener('click', () => {
+            discussionView.classList.add('hidden');
+            topicsContainer.classList.remove('hidden');
+        });
+
+        topicForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const imageInput = document.getElementById('topicImage');
+            let imageUrl = 'https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/fa77abe6-8121-49cc-9e1f-c001c9932eca.png';
+            
+            if (imageInput.files && imageInput.files[0]) {
+                const file = imageInput.files[0];
+                imageUrl = URL.createObjectURL(file);
+            }
+
+            const newTopic = {
+                id: topics.length + 1,
+                title: document.getElementById('topicTitle').value,
+                image: imageUrl,
+                content: document.getElementById('topicContent').value,
+                comments: []
+            };
+            
+            topics.push(newTopic);
+            renderTopics();
+            
+            // Reset form
+            topicForm.reset();
+            topicModal.classList.add('hidden');
+        });
+
+        commentForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const commentText = document.getElementById('commentText').value;
+            const currentTopicId = discussionView.dataset.topicId || 1;
+            const topic = topics.find(t => t.id === parseInt(currentTopicId));
+            
+            const userName = localStorage.getItem('userName') || 'Guest';
+            if (topic) {
+                topic.comments.push({
+                    name: userName,
+                    text: commentText,
+                    date: new Date(),
+                    likes: 0,
+                    dislikes: 0
+                });
+                
+                renderComments(topic.comments);
+                document.getElementById('commentText').value = '';
+            }
+        });
+
+        // Time formatting function
+        function formatTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = Math.floor(seconds / 31536000);
+            
+            if (interval >= 1) return `${interval} year${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 2592000);
+            if (interval >= 1) return `${interval} month${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 86400);
+            if (interval >= 1) return `${interval} day${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 3600);
+            if (interval >= 1) return `${interval} hour${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 60);
+            if (interval >= 1) return `${interval} minute${interval === 1 ? '' : 's'} ago`;
+            return 'just now';
+        }
+
+        // Time formatting function
+        function formatTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = Math.floor(seconds / 31536000);
+            
+            if (interval >= 1) return `${interval} year${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 2592000);
+            if (interval >= 1) return `${interval} month${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 86400);
+            if (interval >= 1) return `${interval} day${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 3600);
+            if (interval >= 1) return `${interval} hour${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 60);
+            if (interval >= 1) return `${interval} min${interval === 1 ? '' : 's'} ago`;
+            return 'just now';
+        }
+
+        // Time formatting function
+        function formatTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = Math.floor(seconds / 31536000);
+            
+            if (interval >= 1) return `${interval} year${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 2592000);
+            if (interval >= 1) return `${interval} month${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 86400);
+            if (interval >= 1) return `${interval} day${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 3600);
+            if (interval >= 1) return `${interval} hour${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 60);
+            if (interval >= 1) return `${interval} min${interval === 1 ? '' : 's'} ago`;
+            return 'just now';
+        }
+
+        // Time formatting function
+        function formatTimeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = Math.floor(seconds / 31536000);
+            
+            if (interval >= 1) return `${interval} year${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 2592000);
+            if (interval >= 1) return `${interval} month${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 86400);
+            if (interval >= 1) return `${interval} day${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 3600);
+            if (interval >= 1) return `${interval} hour${interval === 1 ? '' : 's'} ago`;
+            interval = Math.floor(seconds / 60);
+            if (interval >= 1) return `${interval} minute${interval === 1 ? '' : 's'} ago`;
+            return 'just now';
+        }
+
+        // Initialize
+        renderTopics();
+    </script>
+    </div> <!-- Closing mainContent div -->
+</body>
+</html>
